@@ -164,12 +164,12 @@ The bare stack as built with these instructions, does not do anything but delive
 
 The elements, if installed as above, will be available as shown here:
 
-Larvel (public folder): http://localhost
-Mongo Express: http://localhost:8081/
-phpMyAdmin: http://localhost:8085/
-cAdvisor: http://localhost:8090/
-Prometheus: http://localhost:9090/
-Grafna: http://localhost:3000/
-
-Xdebug (remote client available via VSCode): : http://localhost:9005
+Larvel (public folder): http://localhost/  
+Mongo Express: http://localhost:8081/  
+phpMyAdmin: http://localhost:8085/  
+cAdvisor: http://localhost:8090/  
+Prometheus: http://localhost:9090/  
+Grafna: http://localhost:3000/  
+  
+Xdebug (remote client available via VSCode): http://localhost:9005
 
