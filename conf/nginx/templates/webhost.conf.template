@@ -1,0 +1,391 @@
+#
+# The default server
+#
+server {
+    listen        ${NGINX_PORT};
+    server_name   ${NGINX_HOST0};
+    server_name   ${NGINX_HOST1};
+    server_name   ${NGINX_HOST2};
+    #server_name  _;
+
+    # set default character set for all responses from this server to UTF-8
+    # which is the most internationally accepted by browsers
+    charset UTF-8;
+
+    # Dissable the access log if this is required, it should only be used for
+    # limited period as it has two net effects
+    # 1. There is a slight performance overhead of all the writes to disk
+    # 2. Access logs can get very large very quickly as all requests are written
+    #    to disk, therefore it is possible to RUN OUT OF DISK SPACE
+    #access_log          off;
+    # should the log be required rem out the line above by placing a hash ahead
+    # of it and enable the one below by removing same (#)
+    access_log  /var/log/nginx/sb.klick2contact.com.access.log  main;
+
+    # Set the location of the error log for the server. This log cannot be turned
+    # off and therefore must be set to something
+    error_log    /var/log/nginx/sb.klick2contact.com.error.log;
+
+    # Load configuration files for the default server block if it exists. 
+    # (by default is it NOT present)
+    #include /etc/nginx/default.d/*.conf;
+
+    # Set the file location which is to be the root of the website for the server
+    root /var/www/html/omni;
+
+    fastcgi_buffers  16 256k;
+    fastcgi_buffer_size  128k;
+
+    index index.php index.html index.htm;
+    server_tokens off;
+
+    # Set VLAN subnet as trusted
+    set_real_ip_from 10.100.4.0/24;
+    #real_ip_header X-Forwarded-For;
+    real_ip_header X-Real-IP;
+
+    # redirect server 404 error pages to the static page /404.html
+    location = /eckoh_icon.png {
+      root                    /var/www/html/errors/;
+    }
+
+    # redirect server 404 error pages to the static page /404.html
+    error_page                403  /403.html;
+    location = /403.html {
+      root                    /var/www/html/errors;
+      break;
+    }
+
+    # redirect server 404 error pages to the static page /404.html
+    error_page                404  /404.html;
+    location = /404.html {
+      root                    /var/www/html/errors;
+      break;
+    }
+
+    # redirect server 500 error pages to the static page /500.html
+    error_page                  500  /500.html;
+    location = /500.html {
+      root                      /var/www/html/errors/;
+    }
+
+    # redirect server 502 error pages to the static page /502.html
+    error_page                  502  /502.html;
+    location = /502.html {
+      root                      /var/www/html/errors/;
+    }
+
+    # redirect server 503 error pages to the static page /503.html
+    error_page                  503  /503.html;
+    location = /503.html {
+      root                      /var/www/html/errors/;
+    }
+
+    # redirect server 504 error pages to the static page /504.html
+    error_page                  504  /504.html;
+    location = /504.html {
+      root                      /var/www/html/errors/;
+    }
+
+    # redirect server 301 error pages to the static page /301.html
+    location / {
+      return 301 https://$server_name/v03/agent_v07/;
+    }
+
+    # pass all php scripts back to the php-fpm installation via the local unix socket
+    location ~ \.php$ {
+      # if the requested url does not resolve to an actual file respond with a
+      # 404 error as above
+      if (!-f $request_filename) {
+        return 404;
+      }
+      # Set the file system root location to be used for php if different
+      # to the default. this is here for completeness only
+      #root /var/www/omni/wslive;
+      # Declare the unix socket to be used for the php-fpm connection
+      fastcgi_pass   127.0.0.1:9074;    #set port for php-fpm to listen on
+      #fastcgi_pass unix:/var/run/php-fpm/php-fpm.sock;
+      # Set the default page to be served for php files
+      fastcgi_index index.php;
+      # Declare the definition of the filename to be passed to php-fpm
+      fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+      # Load configuration file for the location block if it exists.
+      # (by default is it NOT present)
+      include fastcgi_params;
+      # Set http headers which are to be passed back to php-fpm
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header Host $http_host;
+      # Set the maximum time int seconds that ngnix should wait for php-fpm
+      # to return a response before giving up with a 502 error (Gateway Timeout)
+      proxy_read_timeout 1600;
+      # define buffers, necessary for proper communication to prevent 502s
+      proxy_buffer_size 128k;
+      proxy_buffers 16 256k;
+      proxy_busy_buffers_size 256k;
+      #ssi on;
+    }
+
+
+    location /v03 {
+        # if required, it is possiblt to use a different file system 'root'
+        # for the exposed location. if this is the case it can be set by
+        # enabling the line below and changing the path
+        #root /var/www/html/omni;
+        index index.php index.html index.htm;
+        # Use optional module to create a Server-Time response header
+        add_header Server-Time $date_gmt;
+        # Permit cross site loading of assets like font files
+        add_header Access-Control-Allow-Origin *;
+        # Expose the real server time header
+        add_header Access-Control-Expose-Headers Server-Time;
+      #  break;
+
+    }
+
+    location /v03/agent_v07 {
+        include /etc/nginx/conf.d/staff.whitelist;
+        include /etc/nginx/conf.d/omni_uat.whitelist;
+        deny all;
+        break;
+    }
+
+    location /v03.5 {
+        # if required, it is possiblt to use a different file system 'root'
+        # for the exposed location. if this is the case it can be set by
+        # enabling the line below and changing the path
+        #root /var/www/omni/v03.5; # Not needed here as will match the file path
+        index index.php index.html index.htm;
+        # Use optional module to create a Server-Time response header
+        add_header Server-Time $date_gmt;
+        # Permit cross site loading of assets like font files
+        add_header Access-Control-Allow-Origin *;
+        # Expose the real server time header
+        add_header Access-Control-Expose-Headers Server-Time;
+        #break;
+    }
+
+    location /v03.5/agent_v07 {
+        include /etc/nginx/conf.d/staff.whitelist;
+        include /etc/nginx/conf.d/omni_uat.whitelist;
+        deny all;
+        break;
+    }
+
+    # Ensure cross platform access for web font files
+    location ~* \.(eot|otf|svg|ttf|woff|woff2)$ {
+        add_header     Access-Control-Allow-Origin             *;
+        add_header     Server-Time                             $date_gmt;
+        add_header     Access-Control-Expose-Headers           Server-Time;
+        add_header     'Access-Control-Allow-Credentials'      'true';
+    }
+
+    # deny access to .htaccess files, if Apache's document root
+    # concurs with nginx's one
+    location ~ /\.ht {
+        deny  all;
+    }
+}
+
+#
+# The secure server
+#
+server {
+    listen        ${NGINX_SSL_PORT} default_server;
+    server_name   ${NGINX_HOST0};
+    server_name   ${NGINX_HOST1};
+    server_name   ${NGINX_HOST2};
+    #server_name  _;
+
+    # set default character set for all responses from this server to UTF-8
+    # which is the most internationally accepted by browsers
+    charset UTF-8;
+
+    # Dissable the access log if this is required, it should only be used for
+    # limited period as it has two net effects
+    # 1. There is a slight performance overhead of all the writes to disk
+    # 2. Access logs can get very large very quickly as all requests are written
+    #    to disk, therefore it is possible to RUN OUT OF DISK SPACE
+    #access_log          off;
+    # should the log be required rem out the line above by placing a hash ahead
+    # of it and enable the one below by removing same (#)
+    access_log  /var/log/nginx/ssl.sb.klick2contact.com.access.log  main;
+
+    # Set the location of the error log for the server. This log cannot be turned
+    # off and therefore must be set to something
+    error_log    /var/log/nginx/ssl.sb.klick2contact.com.error.log;
+
+    # Load configuration files for the default server block if it exists. 
+    # (by default is it NOT present)
+    #include /etc/nginx/default.d/*.conf;
+
+    # Set the file location which is to be the root of the website for the server
+    root /var/www/html/omni;
+
+    fastcgi_buffers  16 256k;
+    fastcgi_buffer_size  128k;
+
+    index index.php index.html index.htm;
+    server_tokens off;
+
+    # Set VLAN subnet as trusted
+    set_real_ip_from 10.100.4.0/24;
+    #real_ip_header X-Forwarded-For;
+    real_ip_header X-Real-IP;
+
+    ssl_certificate /etc/nginx/ssl/2020/klick2contact.com.crt;
+    ssl_certificate_key /etc/nginx/ssl/2020/klick2contact.com.key;
+    ssl_session_timeout 5m;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384;
+    ssl_session_cache shared:SSL:50m;
+    ssl_prefer_server_ciphers off;
+    ssl_dhparam /etc/nginx/ssl/dhparam4096.pem;
+
+    add_header Strict-Transport-Security "max-age=63072000" always;
+
+    # verify chain of trust of OCSP response using Root CA and Intermediate certs
+    ssl_trusted_certificate /etc/nginx/ssl/2020/klick2contact.com.CA_cert_plus_intermediates;
+
+    if ($request_method !~ ^(GET|HEAD|POST)$ ) {
+      return 444;
+    }
+
+    # redirect server 404 error pages to the static page /404.html
+    location = /eckoh_icon.png {
+      root                    /var/www/html/errors/;
+    }
+
+    # redirect server 404 error pages to the static page /404.html
+    error_page                403  /403.html;
+    location = /403.html {
+      root                    /var/www/html/errors;
+      break;
+    }
+
+    # redirect server 404 error pages to the static page /404.html
+    error_page                404  /404.html;
+    location = /404.html {
+      root                    /var/www/html/errors;
+      break;
+    }
+
+    # redirect server 500 error pages to the static page /500.html
+    error_page                  500  /500.html;
+    location = /500.html {
+      root                      /var/www/html/errors/;
+    }
+
+    # redirect server 502 error pages to the static page /502.html
+    error_page                  502  /502.html;
+    location = /502.html {
+      root                      /var/www/html/errors/;
+    }
+
+    # redirect server 503 error pages to the static page /503.html
+    error_page                  503  /503.html;
+    location = /503.html {
+      root                      /var/www/html/errors/;
+    }
+
+    # redirect server 504 error pages to the static page /504.html
+    error_page                  504  /504.html;
+    location = /504.html {
+      root                      /var/www/html/errors/;
+    }
+
+    # redirect server 301 error pages to the static page /301.html
+    location / {
+      return 301 https://$server_name/v03/agent_v07/;
+    }
+
+    # pass all php scripts back to the php-fpm installation via the local unix socket
+    location ~ \.php$ {
+      # if the requested url does not resolve to an actual file respond with a
+      # 404 error as above
+      if (!-f $request_filename) {
+        return 404;
+      }
+      # Set the file system root location to be used for php if different
+      # to the default. this is here for completeness only
+      #root /var/www/omni/wslive;
+      # Declare the unix socket to be used for the php-fpm connection
+      fastcgi_pass   127.0.0.1:9074;    #set port for php-fpm to listen on
+      #fastcgi_pass unix:/var/run/php-fpm/php-fpm.sock;
+      # Set the default page to be served for php files
+      fastcgi_index index.php;
+      # Declare the definition of the filename to be passed to php-fpm
+      fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+      # Load configuration file for the location block if it exists.
+      # (by default is it NOT present)
+      include fastcgi_params;
+      # Set http headers which are to be passed back to php-fpm
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header Host $http_host;
+      # Set the maximum time int seconds that ngnix should wait for php-fpm
+      # to return a response before giving up with a 502 error (Gateway Timeout)
+      proxy_read_timeout 1600;
+      # define buffers, necessary for proper communication to prevent 502s
+      proxy_buffer_size 128k;
+      proxy_buffers 16 256k;
+      proxy_busy_buffers_size 256k;
+      #ssi on;
+    }
+
+    location /v03 {
+        # if required, it is possiblt to use a different file system 'root'
+        # for the exposed location. if this is the case it can be set by
+        # enabling the line below and changing the path
+        #root /var/www/html/omni;
+        index index.php index.html index.htm;
+        # Use optional module to create a Server-Time response header
+        add_header Server-Time $date_gmt;
+        # Permit cross site loading of assets like font files
+        add_header Access-Control-Allow-Origin *;
+        # Expose the real server time header
+        add_header Access-Control-Expose-Headers Server-Time;
+        # break;
+    }
+
+    location /v03/agent_v07 {
+        include /etc/nginx/conf.d/staff.whitelist;
+        include /etc/nginx/conf.d/omni_uat.whitelist;
+        deny all;
+    }
+
+    location /v03.5 {
+        # if required, it is possiblt to use a different file system 'root'
+        # for the exposed location. if this is the case it can be set by
+        # enabling the line below and changing the path
+        #root /var/www/omni/v03.5; # Not needed here as will match the file path
+        index index.php index.html index.htm;
+        # Use optional module to create a Server-Time response header
+        add_header Server-Time $date_gmt;
+        # Permit cross site loading of assets like font files
+        add_header Access-Control-Allow-Origin *;
+        # Expose the real server time header
+        add_header Access-Control-Expose-Headers Server-Time;
+        # break;
+    }
+
+    location /v03.5/agent_v07 {
+        include /etc/nginx/conf.d/staff.whitelist;
+        include /etc/nginx/conf.d/omni_uat.whitelist;
+        deny all;
+    }
+
+    # Ensure cross platform access for web font files
+    location ~* \.(eot|otf|svg|ttf|woff|woff2)$ {
+        add_header     Access-Control-Allow-Origin             *;
+        add_header     Server-Time                             $date_gmt;
+        add_header     Access-Control-Expose-Headers           Server-Time;
+        add_header     'Access-Control-Allow-Credentials'      'true';
+    }
+
+    # deny access to .htaccess files, if Apache's document root
+    # concurs with nginx's one
+    location ~ /\.ht {
+        deny  all;
+    }
+}
+
+

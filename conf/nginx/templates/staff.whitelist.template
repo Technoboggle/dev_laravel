@@ -1,0 +1,14 @@
+        allow 127.0.0.1; # localhost
+        allow 172.0.0.0/8; # locallan
+        allow 81.174.128.108; # Chris Murfin
+        allow 92.27.175.229; # Fin
+        allow 188.222.93.171; # Jonathan Millard
+        allow 94.11.246.175; # Danielle Knight
+        allow 10.0.0.0/8; # vpn local network
+        allow 172.30.0.0/16;
+        allow 81.20.37.0/24; # Eckoh VPN... perhaps
+        allow 82.30.133.101;  # John Cogan
+        allow 86.155.131.151; # Nicola Marsh
+        allow 86.133.63.38; # Miles Booth
+        allow 31.52.76.190; # Nicola Rodford
+        allow 82.6.97.135; # Clare Marquis
